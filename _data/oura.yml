@@ -1,50 +1,43 @@
-# These are the FALLBACK numbers shown before you connect the live Oura
-# proxy (see cloudflare-worker/README.md). Once connected, live values from
-# your ring replace them automatically. You can still edit them by hand if
-# you prefer not to run the proxy.
-# good / warn are the score thresholds Oura itself uses to color a metric
-# green / yellow / red. Set lower_is_better: true for metrics where a smaller
-# number is the good outcome (resting heart rate). Set ring: true to draw the
-# little progress ring (only makes sense for the 0-100 score metrics).
-last_updated: "2026-07-21"
+# These tiles show "—" until YOU connect your live Oura in this browser
+# (Connect Oura button on the page). No personal numbers are stored here, so
+# nothing about your health is committed to the public repo. good / warn are
+# generic 0-100 thresholds Oura uses to color a metric; set lower_is_better
+# for metrics where a smaller number is better; ring draws the progress ring.
 metrics:
   - label: "Sleep Score"
-    value: 82
+    value: "—"
     unit: ""
     good: 85
     warn: 60
     ring: true
   - label: "Readiness"
-    value: 78
+    value: "—"
     unit: ""
     good: 85
     warn: 60
     ring: true
   - label: "Activity"
-    value: 88
+    value: "—"
     unit: ""
     good: 85
     warn: 60
     ring: true
   - label: "HRV"
-    value: 46
+    value: "—"
     unit: "ms"
     good: 45
     warn: 30
   - label: "Resting HR"
-    value: 54
+    value: "—"
     unit: "bpm"
     good: 60
     warn: 70
     lower_is_better: true
   - label: "Total Sleep"
-    value: 7.4
+    value: "—"
     unit: "hrs"
     good: 7
     warn: 6
-  # Stress shows your daytime "stressful" time (live), with a Restored /
-  # Balanced / Stressful chip. No good/warn needed - the chip comes from
-  # Oura's own day summary.
   - label: "Stress"
     value: "—"
     unit: ""

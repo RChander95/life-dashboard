@@ -157,14 +157,14 @@ title: My Life Dashboard
   .pill-primary { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
 
   .connect-box { margin-bottom: 14px; }
-  #oura-connect-form {
+  #oura-connect-form, .connect-form {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     align-items: center;
     margin-top: 8px;
   }
-  #oura-token-input {
+  #oura-token-input, .connect-input {
     flex: 1 1 240px;
     min-width: 0;
     padding: 9px 14px;
@@ -386,16 +386,13 @@ title: My Life Dashboard
     <section aria-labelledby="weather-heading">
       <div class="section-head">
         <h2 id="weather-heading">Weather</h2>
-        <span class="meta">{{ site.data.location.label }}</span>
+        <span class="meta" id="weather-meta">Locating&hellip;</span>
       </div>
       <div class="uv-alert" id="uv-alert" hidden>
         <span class="uv-alert-icon" aria-hidden="true">&#9728;</span>
         <span id="uv-alert-text">Sunscreen reminder &mdash; UV is high today.</span>
       </div>
-      <div class="stat-grid" id="weather-grid"
-           data-lat="{{ site.data.location.lat }}"
-           data-lon="{{ site.data.location.lon }}"
-           data-units="{{ site.data.location.units | default: 'fahrenheit' }}">
+      <div class="stat-grid" id="weather-grid" data-units="fahrenheit">
         <div class="stat-tile" id="weather-temp">
           <div class="stat-top"><span class="stat-kicker">TEMPERATURE &middot; WEATHER</span></div>
           <div class="stat-value">&ndash;&ndash;</div>
@@ -420,7 +417,7 @@ title: My Life Dashboard
     <section aria-labelledby="oura-heading">
       <div class="section-head">
         <h2 id="oura-heading">Oura Ring</h2>
-        <span class="meta" id="oura-meta">Updated {{ site.data.oura.last_updated }}</span>
+        <span class="meta" id="oura-meta">Not connected</span>
       </div>
 
       <div class="connect-box" id="oura-connect-box">
@@ -462,46 +459,46 @@ title: My Life Dashboard
 
     <section aria-labelledby="cal-heading">
       <div class="section-head">
-        <h2 id="cal-heading">Calendars</h2>
-        <a class="pill-link" href="https://calendar.google.com/" target="_blank" rel="noopener">Open Google Calendar</a>
-      </div>
-      <div class="calendar-grid">
-        {% for cal in site.data.calendars %}
-        {% assign slot = forloop.index0 | modulo: 8 | plus: 1 %}
-        <div class="calendar-card" style="--accent: var(--series-{{ slot }});">
-          <div class="card-head">
-            <span class="dot"></span>
-            <h3>{{ cal.name }}</h3>
-          </div>
-          <div class="embed-wrap">
-            <iframe src="{{ cal.embed_url }}" loading="lazy" title="{{ cal.name }} calendar"></iframe>
-          </div>
+        <h2 id="cal-heading">Calendar</h2>
+        <div style="display:flex; gap:8px;">
+          <button class="pill-link" id="cal-connect-btn" type="button">Connect Calendar</button>
+          <button class="pill-link" id="cal-change-btn" type="button" hidden>Change</button>
         </div>
-        {% endfor %}
+      </div>
+      <form id="cal-connect-form" class="connect-form" hidden>
+        <input type="url" id="cal-url-input" class="connect-input" autocomplete="off" spellcheck="false"
+               placeholder="Your Google Calendar embed URL (https://calendar.google.com/…)">
+        <button class="pill-link pill-primary" type="submit">Save</button>
+        <button class="pill-link" type="button" id="cal-connect-cancel">Cancel</button>
+      </form>
+      <p class="connect-note" id="cal-connect-note">
+        In Google Calendar &rarr; <strong>Settings &rarr; Integrate calendar</strong>, use the embed
+        that includes both your Personal and Work calendars (each keeps its own color), and paste
+        that URL here. It's saved only in this browser &mdash; never in this page or repo &mdash; and
+        events show only when you're signed into your Google account.
+      </p>
+      <div class="calendar-card" id="cal-card" hidden>
+        <div class="embed-wrap">
+          <iframe id="cal-iframe" src="" loading="lazy" title="Calendar"></iframe>
+        </div>
       </div>
     </section>
 
     <details class="setup">
-      <summary>Connect your own Oura &amp; calendars</summary>
-      <p>This dashboard is a static site with no server, so every connection below is either a live keyless feed or a small file you keep updated yourself &mdash; nothing that requires storing a private API key in this repo.</p>
+      <summary>How this stays private</summary>
+      <p>Everything personal on this dashboard is stored <strong>only in your own browser</strong>, never in the (public) repo. A stranger who opens the link sees an empty shell &mdash; no calendar, no numbers, no name. You connect each source once per device.</p>
 
-      <h4>Calendars &mdash; live, private</h4>
-      <ol>
-        <li>In Google Calendar, open <strong>Settings</strong> for the calendar you want to add.</li>
-        <li>Under <strong>Share with specific people or groups</strong>, click <strong>Add people and groups</strong> and share it with your own Google account email. <strong>Do not</strong> use "Make available to public" &mdash; that shows it to anyone with the link, not just you.</li>
-        <li>Scroll to <strong>Integrate calendar</strong> and copy the <code>src=</code> URL from the embed code.</li>
-        <li>Add it to <code>_data/calendars.yml</code> as a new <code>name</code> / <code>embed_url</code> pair.</li>
-        <li>The calendar only shows real events to someone signed into that Google account &mdash; anyone else sees a blank/permission box.</li>
-      </ol>
+      <h4>Calendar &mdash; browser only</h4>
+      <p>In Google Calendar &rarr; <strong>Settings &rarr; Integrate calendar</strong>, build the embed that includes your Personal and Work calendars (each keeps its own color), then click <strong>Connect Calendar</strong> above and paste the URL. It's saved only in this browser, and events show only when you're signed into your Google account. Outlook/iCloud can't be shown privately, so they're left off.</p>
 
-      <h4>Weather &amp; UV &mdash; live</h4>
-      <p>Fetched automatically from the free, keyless Open-Meteo API. Just set your coordinates once in <code>_data/location.yml</code>.</p>
+      <h4>Weather &amp; UV &mdash; live, private</h4>
+      <p>Uses your browser's location (with your permission) to fetch weather from the free, keyless Open-Meteo API. Your coordinates are never stored or committed.</p>
 
       <h4>Oura Ring &mdash; live via a free proxy</h4>
-      <p>Oura blocks web pages from calling its API directly, so live sync needs a tiny free relay. Follow the one-time setup in <code>cloudflare-worker/README.md</code> to deploy a Cloudflare Worker (your token is stored securely on your own Cloudflare account, never here), then click <strong>Connect Oura</strong> above and paste your Worker URL. Prefer not to bother? Just edit today's numbers into <code>_data/oura.yml</code> by hand instead.</p>
+      <p>Oura blocks web pages from calling its API directly, so live sync uses a tiny free relay you deploy once (see <code>cloudflare-worker/README.md</code>). Your token stays on your own Cloudflare account; the dashboard only stores your Worker URL, in this browser. Click <strong>Connect Oura</strong> above to paste it.</p>
     </details>
 
-    <footer>Built with GitHub Pages &middot; calendars are shared with this owner's Google account only, not public.</footer>
+    <footer>Built with GitHub Pages &middot; all personal data stays in your browser, never in the public repo.</footer>
   </div>
 
 <script>
@@ -754,8 +751,8 @@ title: My Life Dashboard
   (function () {
     var grid = document.getElementById('weather-grid');
     if (!grid) return;
-    var lat = grid.dataset.lat, lon = grid.dataset.lon, units = grid.dataset.units || 'fahrenheit';
-    var tempUnit = units === 'celsius' ? 'celsius' : 'fahrenheit';
+    var meta = document.getElementById('weather-meta');
+    var tempUnit = (grid.dataset.units === 'celsius') ? 'celsius' : 'fahrenheit';
     var unitSymbol = tempUnit === 'celsius' ? '°C' : '°F';
 
     var WEATHER_CODES = {
@@ -771,49 +768,122 @@ title: My Life Dashboard
       95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm'
     };
 
-    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + encodeURIComponent(lat) +
-      '&longitude=' + encodeURIComponent(lon) +
-      '&current=temperature_2m,weather_code,uv_index' +
-      '&daily=uv_index_max,temperature_2m_max,temperature_2m_min' +
-      '&timezone=auto&temperature_unit=' + tempUnit;
+    function loadWeather(lat, lon) {
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + encodeURIComponent(lat) +
+        '&longitude=' + encodeURIComponent(lon) +
+        '&current=temperature_2m,weather_code,uv_index' +
+        '&daily=uv_index_max,temperature_2m_max,temperature_2m_min' +
+        '&timezone=auto&temperature_unit=' + tempUnit;
 
-    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
-      var cur = data.current || {};
-      var daily = data.daily || {};
+      fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+        var cur = data.current || {};
+        var daily = data.daily || {};
+        if (meta) meta.textContent = 'Your location';
 
-      document.querySelector('#weather-temp .stat-value').innerHTML =
-        Math.round(cur.temperature_2m) + '<span class="unit">' + unitSymbol + '</span>';
+        document.querySelector('#weather-temp .stat-value').innerHTML =
+          Math.round(cur.temperature_2m) + '<span class="unit">' + unitSymbol + '</span>';
 
-      var cond = WEATHER_CODES[cur.weather_code] || 'Unknown';
-      document.querySelector('#weather-condition .stat-value').textContent = cond;
+        var cond = WEATHER_CODES[cur.weather_code] || 'Unknown';
+        document.querySelector('#weather-condition .stat-value').textContent = cond;
 
-      var hi = Math.round(daily.temperature_2m_max[0]);
-      var lo = Math.round(daily.temperature_2m_min[0]);
-      document.querySelector('#weather-hilo .stat-value').innerHTML =
-        hi + '&deg; <span class="unit">/ ' + lo + '&deg;</span>';
+        var hi = Math.round(daily.temperature_2m_max[0]);
+        var lo = Math.round(daily.temperature_2m_min[0]);
+        document.querySelector('#weather-hilo .stat-value').innerHTML =
+          hi + '&deg; <span class="unit">/ ' + lo + '&deg;</span>';
 
-      // Current UV (not the day's peak), so it matches what you feel right now.
-      var uvTile = document.getElementById('weather-uv');
-      var uv = cur.uv_index;
-      var uvMax = (daily.uv_index_max && daily.uv_index_max[0] != null) ? daily.uv_index_max[0] : uv;
-      uvTile.querySelector('.stat-value').textContent = Math.round(uv * 10) / 10;
-      applyStatus(uvTile, uv, parseFloat(uvTile.dataset.good), parseFloat(uvTile.dataset.warn), uvTile.dataset.lowerIsBetter === 'true');
+        // Current UV (not the day's peak), so it matches what you feel right now.
+        var uvTile = document.getElementById('weather-uv');
+        var uv = cur.uv_index;
+        var uvMax = (daily.uv_index_max && daily.uv_index_max[0] != null) ? daily.uv_index_max[0] : uv;
+        uvTile.querySelector('.stat-value').textContent = Math.round(uv * 10) / 10;
+        applyStatus(uvTile, uv, parseFloat(uvTile.dataset.good), parseFloat(uvTile.dataset.warn), uvTile.dataset.lowerIsBetter === 'true');
 
-      // Sunscreen alert when the current UV is above 3.
-      var alert = document.getElementById('uv-alert');
-      var alertText = document.getElementById('uv-alert-text');
-      if (alert && uv > 3) {
-        alertText.innerHTML = 'Sunscreen reminder &mdash; UV is ' + (Math.round(uv * 10) / 10) +
-          ' right now (peaks at ' + (Math.round(uvMax)) + ' today). Reapply if you’re outside.';
-        alert.hidden = false;
-      } else if (alert) {
-        alert.hidden = true;
-      }
-    }).catch(function () {
-      document.querySelector('#weather-temp .stat-value').textContent = 'N/A';
-      document.querySelector('#weather-condition .stat-value').textContent = 'Unavailable';
-      document.querySelector('#weather-hilo .stat-value').textContent = 'N/A';
-      document.querySelector('#weather-uv .stat-value').textContent = 'N/A';
+        // Sunscreen alert when the current UV is above 3.
+        var alert = document.getElementById('uv-alert');
+        var alertText = document.getElementById('uv-alert-text');
+        if (alert && uv > 3) {
+          alertText.innerHTML = 'Sunscreen reminder &mdash; UV is ' + (Math.round(uv * 10) / 10) +
+            ' right now (peaks at ' + (Math.round(uvMax)) + ' today). Reapply if you’re outside.';
+          alert.hidden = false;
+        } else if (alert) {
+          alert.hidden = true;
+        }
+      }).catch(function () {
+        document.querySelector('#weather-temp .stat-value').textContent = 'N/A';
+        document.querySelector('#weather-condition .stat-value').textContent = 'Unavailable';
+        document.querySelector('#weather-hilo .stat-value').textContent = 'N/A';
+        document.querySelector('#weather-uv .stat-value').textContent = 'N/A';
+      });
+    }
+
+    function locationOff(msg) {
+      if (meta) meta.textContent = msg || 'Location off';
+      document.querySelector('#weather-condition .stat-value').textContent = 'Enable location';
+    }
+
+    // Ask the browser for coordinates - never stored, never committed.
+    if (!navigator.geolocation) {
+      locationOff('No location support');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      function (pos) { loadWeather(pos.coords.latitude, pos.coords.longitude); },
+      function () { locationOff('Location blocked'); },
+      { timeout: 10000, maximumAge: 30 * 60 * 1000 }
+    );
+  })();
+
+  (function () {
+    // Calendar embed URL is stored only in this browser, never committed.
+    var CAL_KEY = 'calendar_embed_url';
+    var connectBtn = document.getElementById('cal-connect-btn');
+    var changeBtn = document.getElementById('cal-change-btn');
+    var form = document.getElementById('cal-connect-form');
+    var cancelBtn = document.getElementById('cal-connect-cancel');
+    var input = document.getElementById('cal-url-input');
+    var note = document.getElementById('cal-connect-note');
+    var card = document.getElementById('cal-card');
+    var iframe = document.getElementById('cal-iframe');
+    if (!connectBtn) return;
+
+    function showConnected(url) {
+      iframe.src = url;
+      card.hidden = false;
+      note.hidden = true;
+      connectBtn.hidden = true;
+      changeBtn.hidden = false;
+      form.hidden = true;
+    }
+    function showDisconnected() {
+      card.hidden = true;
+      note.hidden = false;
+      connectBtn.hidden = false;
+      changeBtn.hidden = true;
+      form.hidden = true;
+    }
+
+    var stored = localStorage.getItem(CAL_KEY);
+    if (stored) showConnected(stored); else showDisconnected();
+
+    function openForm() {
+      form.hidden = false;
+      connectBtn.hidden = true;
+      changeBtn.hidden = true;
+      note.hidden = false;
+      input.focus();
+    }
+    connectBtn.addEventListener('click', openForm);
+    changeBtn.addEventListener('click', function () { input.value = localStorage.getItem(CAL_KEY) || ''; openForm(); });
+    cancelBtn.addEventListener('click', function () {
+      if (localStorage.getItem(CAL_KEY)) showConnected(localStorage.getItem(CAL_KEY)); else showDisconnected();
+    });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var url = input.value.trim();
+      if (!url) { localStorage.removeItem(CAL_KEY); showDisconnected(); return; }
+      localStorage.setItem(CAL_KEY, url);
+      input.value = '';
+      showConnected(url);
     });
   })();
 </script>
