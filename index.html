@@ -461,14 +461,15 @@ title: My Life Dashboard
 
     <details class="setup">
       <summary>Connect your own Oura, Apple Health &amp; calendars</summary>
-      <p>This dashboard is a static site with no server, so every connection below is either a live public feed or a small file you keep updated yourself &mdash; nothing that requires storing a private API key in this public repo.</p>
+      <p>This dashboard is a static site with no server, so every connection below is either a live keyless feed or a small file you keep updated yourself &mdash; nothing that requires storing a private API key in this repo.</p>
 
-      <h4>Calendars &mdash; live</h4>
+      <h4>Calendars &mdash; live, private</h4>
       <ol>
         <li>In Google Calendar, open <strong>Settings</strong> for the calendar you want to add.</li>
-        <li>Under <strong>Access permissions</strong>, turn on <strong>Make available to public</strong> (only for calendars you're fine with anyone-with-the-link seeing).</li>
+        <li>Under <strong>Share with specific people or groups</strong>, click <strong>Add people and groups</strong> and share it with your own Google account email. <strong>Do not</strong> use "Make available to public" &mdash; that shows it to anyone with the link, not just you.</li>
         <li>Scroll to <strong>Integrate calendar</strong> and copy the <code>src=</code> URL from the embed code.</li>
         <li>Add it to <code>_data/calendars.yml</code> as a new <code>name</code> / <code>embed_url</code> pair.</li>
+        <li>The calendar only shows real events to someone signed into that Google account &mdash; anyone else sees a blank/permission box.</li>
       </ol>
 
       <h4>Weather &amp; UV &mdash; live</h4>
@@ -481,7 +482,7 @@ title: My Life Dashboard
       <p>Apple Health data lives on your device with no public web API, so open the Health app and copy today's numbers into <code>_data/apple_health.yml</code>. Give a metric a <code>goal</code> to show it as a progress bar.</p>
     </details>
 
-    <footer>Built with GitHub Pages &middot; only calendars you've explicitly made public are shown here.</footer>
+    <footer>Built with GitHub Pages &middot; calendars are shared with this owner's Google account only, not public.</footer>
   </div>
 
 <script>
