@@ -6,8 +6,8 @@ JS, Liquid loops over `_data/*.yml`. There is no backend and no database —
 every "connection" below is either a live client-side fetch or a file the
 user edits.
 
-If a user asks you to "set up my dashboard" or "connect my calendar/Oura/
-Apple Health," walk them through the relevant section below rather than
+If a user asks you to "set up my dashboard" or "connect my calendar/Oura,"
+walk them through the relevant section below rather than
 re-architecting anything. Keep changes scoped to `_data/*.yml` unless they
 explicitly ask for a design or feature change.
 
@@ -18,7 +18,10 @@ explicitly ask for a design or feature change.
 | Calendars | `_data/calendars.yml` | Live (Google Calendar iframe embed) | See "Calendar privacy" below — never suggest "Make available to public." |
 | Weather / UV | `_data/location.yml` | Live (Open-Meteo, keyless) | Just needs `lat`/`lon`. No signup, no key. |
 | Oura Ring | `_data/oura.yml` + in-page "Connect Oura" | Manual by default, live if user connects a token | See "Oura token" below. |
-| Apple Health | `_data/apple_health.yml` | Manual only | Apple has no public API for Health data — do not imply this can be automated. |
+
+Apple Health was intentionally removed: Apple offers no public API for Health
+data (it's on-device only), so there is no honest way to automate it on a
+static site. Do not re-add it as a "connect" feature.
 
 ## Calendar privacy
 
