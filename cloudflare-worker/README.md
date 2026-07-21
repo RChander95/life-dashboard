@@ -49,6 +49,13 @@ token, just update the `OURA_TOKEN` secret on the Worker — nothing else change
 
 ---
 
+### Updating the Worker later
+
+If the dashboard adds a new Oura metric (e.g. Stress), re-open your Worker in
+Cloudflare, **Edit code**, paste the latest `oura-proxy.js` over the old code,
+and **Deploy**. Your `OURA_TOKEN` secret and `ALLOWED_ORIGIN` stay put — only
+the code changes.
+
 ### Notes
 
 - The Worker only forwards four read-only Oura endpoints (readiness, sleep,

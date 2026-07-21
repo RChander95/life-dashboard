@@ -18,7 +18,13 @@
  */
 
 const OURA_BASE = 'https://api.ouraring.com/v2/usercollection/';
-const ALLOWED_PATHS = ['daily_readiness', 'daily_sleep', 'daily_activity', 'sleep'];
+// Read-only daily collections the dashboard may request. Extra entries here
+// are future-proofing so new tiles don't require re-editing the Worker.
+const ALLOWED_PATHS = [
+  'daily_readiness', 'daily_sleep', 'daily_activity', 'daily_stress',
+  'daily_spo2', 'daily_resilience', 'daily_cardiovascular_age',
+  'sleep', 'sleep_time',
+];
 
 export default {
   async fetch(request, env) {

@@ -537,6 +537,15 @@ title: My Life Dashboard
 
   var STATUS_LABELS = { good: 'optimal', warning: 'fair', critical: 'pay attention' };
 
+  // Format decimal hours as "7h 24m" to match the Oura app.
+  function formatHM(hours) {
+    if (isNaN(hours)) return '';
+    var h = Math.floor(hours);
+    var m = Math.round((hours - h) * 60);
+    if (m === 60) { h += 1; m = 0; }
+    return h + 'h ' + (m < 10 ? '0' + m : m) + 'm';
+  }
+
   function applyStatus(tile, value, good, warn, lowerIsBetter) {
     if (isNaN(value) || isNaN(good) || isNaN(warn)) return null;
     var status;
@@ -564,6 +573,12 @@ title: My Life Dashboard
     document.querySelectorAll('.stat-tile[data-value]').forEach(function (tile) {
       applyStatus(tile, parseFloat(tile.dataset.value), parseFloat(tile.dataset.good), parseFloat(tile.dataset.warn), tile.dataset.lowerIsBetter === 'true');
     });
+    // Show the fallback Total Sleep in "7h 24m" form too.
+    var ts = document.getElementById('oura-total-sleep');
+    if (ts) {
+      var h = parseFloat(ts.dataset.value);
+      if (!isNaN(h)) ts.querySelector('.stat-value').textContent = formatHM(h);
+    }
   })();
 
   (function () {
@@ -594,6 +609,16 @@ title: My Life Dashboard
       applyStatus(tile, parseFloat(tile.dataset.value), parseFloat(tile.dataset.good), parseFloat(tile.dataset.warn), tile.dataset.lowerIsBetter === 'true');
     }
 
+    // Show a raw string (no unit span, no threshold) - used for the h/m sleep
+    // value and the stress duration. Keeps data-value numeric for anything
+    // that still wants a threshold.
+    function updateTileText(id, text, numericValue) {
+      var tile = document.getElementById(id);
+      if (!tile) return;
+      if (numericValue !== undefined && !isNaN(numericValue)) tile.dataset.value = numericValue;
+      tile.querySelector('.stat-value').textContent = text;
+    }
+
     // Ask the Worker for one Oura collection. The Worker adds the token and
     // the CORS headers server-side, so this browser request is allowed.
     function proxyFetch(base, path, startDate, endDate) {
@@ -622,14 +647,16 @@ title: My Life Dashboard
         proxyFetch(base, 'daily_readiness', startDate, endDate),
         proxyFetch(base, 'daily_sleep', startDate, endDate),
         proxyFetch(base, 'daily_activity', startDate, endDate),
-        proxyFetch(base, 'sleep', startDate, endDate)
+        proxyFetch(base, 'sleep', startDate, endDate),
+        proxyFetch(base, 'daily_stress', startDate, endDate)
       ]).then(function (results) {
         var anyOk = results.some(function (r) { return r.status === 'fulfilled'; });
         if (!anyOk) {
           meta.textContent = 'Could not connect — check your proxy URL';
           return;
         }
-        var readiness = results[0], sleepDaily = results[1], activity = results[2], sleepDetail = results[3];
+        var readiness = results[0], sleepDaily = results[1], activity = results[2],
+            sleepDetail = results[3], stress = results[4];
 
         if (readiness.status === 'fulfilled' && readiness.value.data.length) {
           updateTile('oura-readiness', readiness.value.data.slice(-1)[0].score);
@@ -645,7 +672,22 @@ title: My Life Dashboard
           var longSleep = periods.filter(function (p) { return p.type === 'long_sleep'; }).slice(-1)[0] || periods.slice(-1)[0];
           if (longSleep.average_hrv != null) updateTile('oura-hrv', Math.round(longSleep.average_hrv), 'ms');
           if (longSleep.lowest_heart_rate != null) updateTile('oura-resting-hr', Math.round(longSleep.lowest_heart_rate), 'bpm');
-          if (longSleep.total_sleep_duration != null) updateTile('oura-total-sleep', Math.round(longSleep.total_sleep_duration / 360) / 10, 'hrs');
+          if (longSleep.total_sleep_duration != null) {
+            var hrs = longSleep.total_sleep_duration / 3600;
+            updateTileText('oura-total-sleep', formatHM(hrs), hrs);
+          }
+        }
+        if (stress.status === 'fulfilled' && stress.value.data.length) {
+          var s = stress.value.data.slice(-1)[0];
+          updateTileText('oura-stress', formatHM((s.stress_high || 0) / 3600));
+          var stile = document.getElementById('oura-stress');
+          var chip = stile && stile.querySelector('.stat-chip');
+          if (chip) {
+            var sum = s.day_summary || '';
+            if (sum === 'restored') { chip.textContent = 'restored'; chip.setAttribute('data-status', 'good'); }
+            else if (sum === 'stressful') { chip.textContent = 'stressful'; chip.setAttribute('data-status', 'critical'); }
+            else { chip.textContent = 'balanced'; chip.removeAttribute('data-status'); }
+          }
         }
 
         meta.textContent = 'Live · synced ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -656,6 +698,12 @@ title: My Life Dashboard
     if (stored) {
       setConnectedUI(true);
       syncOura(stored);
+      // Auto-refresh while the dashboard stays open, so live values (like the
+      // activity score) don't drift from the app.
+      setInterval(function () {
+        var url = localStorage.getItem(PROXY_KEY);
+        if (url) syncOura(url);
+      }, 5 * 60 * 1000);
     }
 
     connectBtn.addEventListener('click', function () {

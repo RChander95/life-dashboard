@@ -1,7 +1,7 @@
-# Oura has no public/keyless API, so a static GitHub Pages site can't pull
-# this live without exposing a personal access token to the world. Instead,
-# open the Oura app each morning and copy today's numbers in here - it's a
-# 30-second update.
+# These are the FALLBACK numbers shown before you connect the live Oura
+# proxy (see cloudflare-worker/README.md). Once connected, live values from
+# your ring replace them automatically. You can still edit them by hand if
+# you prefer not to run the proxy.
 # good / warn are the score thresholds Oura itself uses to color a metric
 # green / yellow / red. Set lower_is_better: true for metrics where a smaller
 # number is the good outcome (resting heart rate). Set ring: true to draw the
@@ -42,3 +42,9 @@ metrics:
     unit: "hrs"
     good: 7
     warn: 6
+  # Stress shows your daytime "stressful" time (live), with a Restored /
+  # Balanced / Stressful chip. No good/warn needed - the chip comes from
+  # Oura's own day summary.
+  - label: "Stress"
+    value: "—"
+    unit: ""
