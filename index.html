@@ -184,6 +184,21 @@ title: My Life Dashboard
   .connect-note a { color: var(--text-secondary); }
   .connect-note[hidden] { display: none; }
 
+  .uv-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--status-warning) 16%, var(--surface-1));
+    border: 1px solid color-mix(in srgb, var(--status-warning) 40%, transparent);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .uv-alert-icon { font-size: 1.1rem; line-height: 1; }
+
   /* Stat tiles (Oura / Weather) */
   .stat-grid {
     display: grid;
@@ -372,6 +387,10 @@ title: My Life Dashboard
       <div class="section-head">
         <h2 id="weather-heading">Weather</h2>
         <span class="meta">{{ site.data.location.label }}</span>
+      </div>
+      <div class="uv-alert" id="uv-alert" hidden>
+        <span class="uv-alert-icon" aria-hidden="true">&#9728;</span>
+        <span id="uv-alert-text">Sunscreen reminder &mdash; UV is high today.</span>
       </div>
       <div class="stat-grid" id="weather-grid"
            data-lat="{{ site.data.location.lat }}"
@@ -754,17 +773,18 @@ title: My Life Dashboard
 
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + encodeURIComponent(lat) +
       '&longitude=' + encodeURIComponent(lon) +
-      '&current_weather=true&daily=uv_index_max,temperature_2m_max,temperature_2m_min' +
+      '&current=temperature_2m,weather_code,uv_index' +
+      '&daily=uv_index_max,temperature_2m_max,temperature_2m_min' +
       '&timezone=auto&temperature_unit=' + tempUnit;
 
     fetch(url).then(function (r) { return r.json(); }).then(function (data) {
-      var cw = data.current_weather;
-      var daily = data.daily;
+      var cur = data.current || {};
+      var daily = data.daily || {};
 
       document.querySelector('#weather-temp .stat-value').innerHTML =
-        Math.round(cw.temperature) + '<span class="unit">' + unitSymbol + '</span>';
+        Math.round(cur.temperature_2m) + '<span class="unit">' + unitSymbol + '</span>';
 
-      var cond = WEATHER_CODES[cw.weathercode] || 'Unknown';
+      var cond = WEATHER_CODES[cur.weather_code] || 'Unknown';
       document.querySelector('#weather-condition .stat-value').textContent = cond;
 
       var hi = Math.round(daily.temperature_2m_max[0]);
@@ -772,10 +792,23 @@ title: My Life Dashboard
       document.querySelector('#weather-hilo .stat-value').innerHTML =
         hi + '&deg; <span class="unit">/ ' + lo + '&deg;</span>';
 
+      // Current UV (not the day's peak), so it matches what you feel right now.
       var uvTile = document.getElementById('weather-uv');
-      var uv = daily.uv_index_max[0];
+      var uv = cur.uv_index;
+      var uvMax = (daily.uv_index_max && daily.uv_index_max[0] != null) ? daily.uv_index_max[0] : uv;
       uvTile.querySelector('.stat-value').textContent = Math.round(uv * 10) / 10;
       applyStatus(uvTile, uv, parseFloat(uvTile.dataset.good), parseFloat(uvTile.dataset.warn), uvTile.dataset.lowerIsBetter === 'true');
+
+      // Sunscreen alert when the current UV is above 3.
+      var alert = document.getElementById('uv-alert');
+      var alertText = document.getElementById('uv-alert-text');
+      if (alert && uv > 3) {
+        alertText.innerHTML = 'Sunscreen reminder &mdash; UV is ' + (Math.round(uv * 10) / 10) +
+          ' right now (peaks at ' + (Math.round(uvMax)) + ' today). Reapply if you’re outside.';
+        alert.hidden = false;
+      } else if (alert) {
+        alert.hidden = true;
+      }
     }).catch(function () {
       document.querySelector('#weather-temp .stat-value').textContent = 'N/A';
       document.querySelector('#weather-condition .stat-value').textContent = 'Unavailable';
