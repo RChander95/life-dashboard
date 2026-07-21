@@ -408,16 +408,16 @@ title: My Life Dashboard
         <button class="pill-link" id="oura-connect-btn" type="button">Connect Oura</button>
         <button class="pill-link" id="oura-disconnect-btn" type="button" hidden>Disconnect Oura</button>
         <form id="oura-connect-form" hidden>
-          <input type="password" id="oura-token-input" autocomplete="off" spellcheck="false"
-                 placeholder="Oura personal access token">
+          <input type="url" id="oura-token-input" autocomplete="off" spellcheck="false"
+                 placeholder="Your Oura proxy URL (https://…workers.dev)">
           <button class="pill-link pill-primary" type="submit">Save</button>
           <button class="pill-link" type="button" id="oura-connect-cancel">Cancel</button>
         </form>
         <p class="connect-note" id="oura-connect-note">
-          Create a <strong>read-only</strong> token at
-          <a href="https://cloud.ouraring.com/personal-access-tokens" target="_blank" rel="noopener">cloud.ouraring.com/personal-access-tokens</a>.
-          It's saved only in this browser's local storage, sent only to Oura's own API directly from your device,
-          and never committed to GitHub or seen by anyone else who opens this dashboard.
+          Paste the <strong>proxy URL</strong> from your Cloudflare Worker (see
+          <code>cloudflare-worker/README.md</code> for the one-time setup). Your Oura token lives
+          only inside that Worker on your own Cloudflare account &mdash; never in this browser, this
+          page, or this repo. This URL is saved only in this browser's local storage.
         </p>
       </div>
 
@@ -478,8 +478,8 @@ title: My Life Dashboard
       <h4>Weather &amp; UV &mdash; live</h4>
       <p>Fetched automatically from the free, keyless Open-Meteo API. Just set your coordinates once in <code>_data/location.yml</code>.</p>
 
-      <h4>Oura Ring &mdash; manual</h4>
-      <p>Oura doesn't offer a public/keyless API, so open the Oura app each morning and copy today's scores into <code>_data/oura.yml</code>.</p>
+      <h4>Oura Ring &mdash; live via a free proxy</h4>
+      <p>Oura blocks web pages from calling its API directly, so live sync needs a tiny free relay. Follow the one-time setup in <code>cloudflare-worker/README.md</code> to deploy a Cloudflare Worker (your token is stored securely on your own Cloudflare account, never here), then click <strong>Connect Oura</strong> above and paste your Worker URL. Prefer not to bother? Just edit today's numbers into <code>_data/oura.yml</code> by hand instead.</p>
     </details>
 
     <footer>Built with GitHub Pages &middot; calendars are shared with this owner's Google account only, not public.</footer>
@@ -567,7 +567,9 @@ title: My Life Dashboard
   })();
 
   (function () {
-    var TOKEN_KEY = 'oura_token';
+    // We store the URL of the user's own Cloudflare Worker (the "Oura proxy"),
+    // never the Oura token itself. The token lives only inside that Worker.
+    var PROXY_KEY = 'oura_proxy_url';
     var box = document.getElementById('oura-connect-box');
     if (!box) return;
     var connectBtn = document.getElementById('oura-connect-btn');
@@ -592,9 +594,13 @@ title: My Life Dashboard
       applyStatus(tile, parseFloat(tile.dataset.value), parseFloat(tile.dataset.good), parseFloat(tile.dataset.warn), tile.dataset.lowerIsBetter === 'true');
     }
 
-    function ouraFetch(path, token, startDate, endDate) {
-      var url = 'https://api.ouraring.com/v2/usercollection/' + path + '?start_date=' + startDate + '&end_date=' + endDate;
-      return fetch(url, { headers: { Authorization: 'Bearer ' + token } }).then(function (r) {
+    // Ask the Worker for one Oura collection. The Worker adds the token and
+    // the CORS headers server-side, so this browser request is allowed.
+    function proxyFetch(base, path, startDate, endDate) {
+      var sep = base.indexOf('?') === -1 ? '?' : '&';
+      var url = base + sep + 'path=' + encodeURIComponent(path) +
+        '&start_date=' + startDate + '&end_date=' + endDate;
+      return fetch(url).then(function (r) {
         if (!r.ok) throw new Error('oura ' + path + ' ' + r.status);
         return r.json();
       });
@@ -607,20 +613,20 @@ title: My Life Dashboard
       note.hidden = connected;
     }
 
-    function syncOura(token) {
+    function syncOura(base) {
       var today = new Date();
       var startDate = localDateStr(new Date(today.getTime() - 2 * 86400000));
       var endDate = localDateStr(today);
 
       Promise.allSettled([
-        ouraFetch('daily_readiness', token, startDate, endDate),
-        ouraFetch('daily_sleep', token, startDate, endDate),
-        ouraFetch('daily_activity', token, startDate, endDate),
-        ouraFetch('sleep', token, startDate, endDate)
+        proxyFetch(base, 'daily_readiness', startDate, endDate),
+        proxyFetch(base, 'daily_sleep', startDate, endDate),
+        proxyFetch(base, 'daily_activity', startDate, endDate),
+        proxyFetch(base, 'sleep', startDate, endDate)
       ]).then(function (results) {
         var anyOk = results.some(function (r) { return r.status === 'fulfilled'; });
         if (!anyOk) {
-          meta.textContent = 'Could not connect — check your token';
+          meta.textContent = 'Could not connect — check your proxy URL';
           return;
         }
         var readiness = results[0], sleepDaily = results[1], activity = results[2], sleepDetail = results[3];
@@ -646,7 +652,7 @@ title: My Life Dashboard
       });
     }
 
-    var stored = localStorage.getItem(TOKEN_KEY);
+    var stored = localStorage.getItem(PROXY_KEY);
     if (stored) {
       setConnectedUI(true);
       syncOura(stored);
@@ -663,17 +669,17 @@ title: My Life Dashboard
     });
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var token = input.value.trim();
-      if (!token) return;
-      localStorage.setItem(TOKEN_KEY, token);
+      var base = input.value.trim();
+      if (!base) return;
+      localStorage.setItem(PROXY_KEY, base);
       input.value = '';
       setConnectedUI(true);
       meta.textContent = 'Connecting…';
-      syncOura(token);
+      syncOura(base);
     });
     disconnectBtn.addEventListener('click', function () {
-      if (!confirm('Remove your Oura token from this browser and go back to the manually-updated numbers?')) return;
-      localStorage.removeItem(TOKEN_KEY);
+      if (!confirm('Disconnect the Oura proxy from this browser and go back to the manually-updated numbers?')) return;
+      localStorage.removeItem(PROXY_KEY);
       location.reload();
     });
   })();
