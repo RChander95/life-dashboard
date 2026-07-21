@@ -1,0 +1,161 @@
+---
+layout: null
+title: Family Setup
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up a dashboard for someone</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%8C%A4</text></svg>">
+<style>
+  :root {
+    color-scheme: light;
+    --page:#ece4d6; --surface-1:#f8f4ea; --surface-2:#fffdf8;
+    --text-primary:#211c14; --text-secondary:#6e6353; --text-muted:#9a8f7c;
+    --border:rgba(33,28,20,0.11); --gridline:#e4dcc9;
+    --font-serif: ui-serif, Georgia, "Times New Roman", serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --page:#16130e; --surface-1:#201b14; --surface-2:#262019;
+      --text-primary:#f4eee1; --text-secondary:#c2b7a3; --text-muted:#8e8471;
+      --border:rgba(244,238,225,0.10); --gridline:#322b20;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; background:var(--page); color:var(--text-primary);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap { max-width:640px; margin:0 auto; padding:28px 16px 64px; }
+  .kicker { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin:0 0 6px; }
+  h1 { font-family:var(--font-serif); font-weight:500; font-size:clamp(1.5rem,4vw,2rem); margin:0 0 8px; }
+  p.lead { color:var(--text-secondary); font-size:0.95rem; line-height:1.55; margin:0 0 24px; }
+  label { display:block; font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-secondary); margin:16px 0 6px; }
+  label .hint { display:block; font-weight:400; text-transform:none; letter-spacing:0; color:var(--text-muted); font-size:0.8rem; margin-top:2px; }
+  input {
+    width:100%; padding:11px 14px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text-primary); font-size:0.95rem;
+  }
+  button {
+    margin-top:22px; padding:12px 22px; border-radius:999px; border:1px solid var(--text-primary);
+    background:var(--text-primary); color:var(--surface-1); font:inherit; font-weight:600; cursor:pointer;
+  }
+  button.ghost { background:transparent; color:var(--text-primary); border-color:var(--border); }
+  button:hover { opacity:0.92; }
+  .card { background:var(--surface-1); border:1px solid var(--border); border-radius:16px; padding:20px; }
+  #result { margin-top:24px; }
+  #result[hidden] { display:none; }
+  .linkbox {
+    display:flex; gap:8px; margin-top:8px; align-items:stretch; flex-wrap:wrap;
+  }
+  #setup-link {
+    flex:1 1 260px; min-width:0; padding:11px 14px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--text-primary); font-size:0.82rem; font-family:ui-monospace,monospace;
+  }
+  #copy-btn { margin-top:0; }
+  .status { font-size:0.85rem; color:var(--text-secondary); margin-top:10px; min-height:1.2em; }
+  ol { color:var(--text-secondary); font-size:0.9rem; line-height:1.6; padding-left:20px; }
+  code { background:var(--gridline); border-radius:4px; padding:1px 5px; font-size:0.82rem; }
+  a { color:var(--text-secondary); }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="kicker">Family setup</p>
+    <h1>Set up a dashboard for someone</h1>
+    <p class="lead">Fill in a person's details, generate their personal link, and text it to them.
+      When they tap it on their own phone or computer, their dashboard fills in automatically &mdash;
+      nothing to paste. Their info is carried only inside that link and saved on their device.</p>
+
+    <div class="card">
+      <label for="f-name">Their name <span class="hint">Shown in the greeting, e.g. "Good morning, Mom."</span></label>
+      <input id="f-name" type="text" autocomplete="off" placeholder="Mom">
+
+      <label for="f-city">Their city <span class="hint">For local weather &amp; UV. Leave blank to skip.</span></label>
+      <input id="f-city" type="text" autocomplete="off" placeholder="Chicago">
+
+      <label for="f-cal">Their Google Calendar embed URL <span class="hint">Google Calendar → Settings → Integrate calendar → Embed code src. Leave blank to skip.</span></label>
+      <input id="f-cal" type="url" autocomplete="off" placeholder="https://calendar.google.com/calendar/embed?src=…">
+
+      <label for="f-oura">Their Oura proxy URL <span class="hint">The Cloudflare Worker you made with THEIR Oura token. Leave blank if they don't use Oura.</span></label>
+      <input id="f-oura" type="url" autocomplete="off" placeholder="https://oura-…workers.dev">
+
+      <button id="gen-btn" type="button">Generate their link</button>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div id="result" hidden>
+      <label for="setup-link">Their personal setup link</label>
+      <div class="linkbox">
+        <input id="setup-link" type="text" readonly>
+        <button id="copy-btn" type="button">Copy</button>
+      </div>
+      <ol style="margin-top:16px;">
+        <li>Text or email this link to them.</li>
+        <li>They open it on their <strong>own</strong> phone or computer &mdash; their dashboard fills in automatically.</li>
+        <li>For the calendar to show events, they sign into their own Google account in that browser.</li>
+      </ol>
+    </div>
+
+    <p style="margin-top:28px;"><a href="./">&larr; Back to the dashboard</a></p>
+  </div>
+
+<script>
+  var statusEl = document.getElementById('status');
+
+  function b64encode(str) { return btoa(unescape(encodeURIComponent(str))); }
+
+  function geocode(city) {
+    return fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(city))
+      .then(function (r) { return r.json(); })
+      .then(function (g) {
+        if (!g.results || !g.results.length) throw new Error('not found');
+        var h = g.results[0];
+        return { lat: h.latitude, lon: h.longitude, label: h.name + (h.admin1 ? ', ' + h.admin1 : '') };
+      });
+  }
+
+  function build(loc) {
+    var cfg = {};
+    var name = document.getElementById('f-name').value.trim();
+    var cal = document.getElementById('f-cal').value.trim();
+    var oura = document.getElementById('f-oura').value.trim();
+    if (name) cfg.name = name;
+    if (loc) cfg.location = loc;
+    if (cal) cfg.calendar = cal;
+    if (oura) cfg.oura = oura;
+
+    var base = location.href.replace(/setup\.html.*$/, '').replace(/#.*$/, '');
+    var link = base + '#setup=' + b64encode(JSON.stringify(cfg));
+
+    document.getElementById('setup-link').value = link;
+    document.getElementById('result').hidden = false;
+    statusEl.textContent = 'Link ready.';
+    document.getElementById('setup-link').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  document.getElementById('gen-btn').addEventListener('click', function () {
+    statusEl.textContent = '';
+    var city = document.getElementById('f-city').value.trim();
+    if (!city) { build(null); return; }
+    statusEl.textContent = 'Looking up city…';
+    geocode(city).then(function (loc) { build(loc); })
+      .catch(function () { statusEl.textContent = 'Couldn’t find that city — check the spelling, or leave it blank.'; });
+  });
+
+  document.getElementById('copy-btn').addEventListener('click', function () {
+    var input = document.getElementById('setup-link');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    var done = function () { statusEl.textContent = 'Copied! Now text it to them.'; };
+    if (navigator.clipboard) navigator.clipboard.writeText(input.value).then(done, function () { document.execCommand('copy'); done(); });
+    else { document.execCommand('copy'); done(); }
+  });
+</script>
+</body>
+</html>

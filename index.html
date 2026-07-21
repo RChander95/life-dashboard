@@ -505,12 +505,31 @@ title: My Life Dashboard
 
       <h4>Oura Ring &mdash; live via a free proxy</h4>
       <p>Oura blocks web pages from calling its API directly, so live sync uses a tiny free relay you deploy once (see <code>cloudflare-worker/README.md</code>). Your token stays on your own Cloudflare account; the dashboard only stores your Worker URL, in this browser. Click <strong>Connect Oura</strong> above to paste it.</p>
+
+      <h4>Setting it up for family</h4>
+      <p>Use the <a href="./setup.html">family setup page</a> to fill in someone's details once and get a personalized link &mdash; they tap it on their own device and their dashboard fills in automatically.</p>
     </details>
 
     <footer>Built with GitHub Pages &middot; all personal data stays in your browser, never in the public repo.</footer>
   </div>
 
 <script>
+  // If opened via a personalized setup link (#setup=...), apply the settings
+  // to this browser's local storage, then reload to a clean URL so everything
+  // fills in. Runs before anything else.
+  (function () {
+    var m = location.hash.match(/^#setup=(.+)$/);
+    if (!m) return;
+    try {
+      var cfg = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+      if (cfg.name) localStorage.setItem('dashboard_name', cfg.name);
+      if (cfg.location) localStorage.setItem('weather_location', JSON.stringify(cfg.location));
+      if (cfg.calendar) localStorage.setItem('calendar_embed_url', cfg.calendar);
+      if (cfg.oura) localStorage.setItem('oura_proxy_url', cfg.oura);
+    } catch (e) {}
+    window.location.replace(location.pathname + location.search);
+  })();
+
   (function () {
     var root = document.documentElement;
     var toggle = document.getElementById('theme-toggle');
