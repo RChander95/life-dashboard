@@ -89,6 +89,7 @@ title: My Life Dashboard
   }
 
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   html, body {
     margin: 0;
     background: var(--page);
@@ -177,6 +178,37 @@ title: My Life Dashboard
     font-weight: 500;
   }
   .pill-link:hover { border-color: var(--text-muted); }
+  .pill-link:disabled { opacity: 0.6; cursor: default; }
+  button.pill-link { font: inherit; }
+  .pill-primary { background: var(--text-primary); color: var(--surface-1); border-color: var(--text-primary); }
+
+  .connect-box { margin-bottom: 14px; }
+  #oura-connect-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  #oura-token-input {
+    flex: 1 1 240px;
+    min-width: 0;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+  }
+  .connect-note {
+    margin: 8px 0 0;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    max-width: 60ch;
+  }
+  .connect-note a { color: var(--text-secondary); }
+  .connect-note[hidden] { display: none; }
 
   /* Stat tiles (Oura / Weather) */
   .stat-grid {
@@ -395,14 +427,34 @@ title: My Life Dashboard
     <section aria-labelledby="oura-heading">
       <div class="section-head">
         <h2 id="oura-heading">Oura Ring</h2>
-        <span class="meta">Updated {{ site.data.oura.last_updated }}</span>
+        <span class="meta" id="oura-meta">Updated {{ site.data.oura.last_updated }}</span>
       </div>
+
+      <div class="connect-box" id="oura-connect-box">
+        <button class="pill-link" id="oura-connect-btn" type="button">Connect Oura</button>
+        <button class="pill-link" id="oura-disconnect-btn" type="button" hidden>Disconnect Oura</button>
+        <form id="oura-connect-form" hidden>
+          <input type="password" id="oura-token-input" autocomplete="off" spellcheck="false"
+                 placeholder="Oura personal access token">
+          <button class="pill-link pill-primary" type="submit">Save</button>
+          <button class="pill-link" type="button" id="oura-connect-cancel">Cancel</button>
+        </form>
+        <p class="connect-note" id="oura-connect-note">
+          Create a <strong>read-only</strong> token at
+          <a href="https://cloud.ouraring.com/personal-access-tokens" target="_blank" rel="noopener">cloud.ouraring.com/personal-access-tokens</a>.
+          It's saved only in this browser's local storage, sent only to Oura's own API directly from your device,
+          and never committed to GitHub or seen by anyone else who opens this dashboard.
+        </p>
+      </div>
+
       <div class="stat-grid">
         {% for m in site.data.oura.metrics %}
         <div class="stat-tile"
+             id="oura-{{ m.label | slugify }}"
              data-value="{{ m.value }}"
              data-good="{{ m.good }}"
              data-warn="{{ m.warn }}"
+             data-unit="{{ m.unit }}"
              {% if m.lower_is_better %}data-lower-is-better="true"{% endif %}>
           <div class="stat-top">
             <span class="stat-kicker">{{ m.label | upcase }} &middot; OURA</span>
@@ -537,6 +589,118 @@ title: My Life Dashboard
   (function () {
     document.querySelectorAll('.stat-tile[data-value]').forEach(function (tile) {
       applyStatus(tile, parseFloat(tile.dataset.value), parseFloat(tile.dataset.good), parseFloat(tile.dataset.warn), tile.dataset.lowerIsBetter === 'true');
+    });
+  })();
+
+  (function () {
+    var TOKEN_KEY = 'oura_token';
+    var box = document.getElementById('oura-connect-box');
+    if (!box) return;
+    var connectBtn = document.getElementById('oura-connect-btn');
+    var disconnectBtn = document.getElementById('oura-disconnect-btn');
+    var form = document.getElementById('oura-connect-form');
+    var cancelBtn = document.getElementById('oura-connect-cancel');
+    var input = document.getElementById('oura-token-input');
+    var note = document.getElementById('oura-connect-note');
+    var meta = document.getElementById('oura-meta');
+
+    function localDateStr(d) {
+      var y = d.getFullYear(), m = ('0' + (d.getMonth() + 1)).slice(-2), day = ('0' + d.getDate()).slice(-2);
+      return y + '-' + m + '-' + day;
+    }
+
+    function updateTile(id, value, unit) {
+      var tile = document.getElementById(id);
+      if (!tile || value === null || value === undefined || isNaN(value)) return;
+      tile.dataset.value = value;
+      var u = unit !== undefined ? unit : (tile.dataset.unit || '');
+      tile.querySelector('.stat-value').innerHTML = value + (u ? '<span class="unit">' + u + '</span>' : '');
+      applyStatus(tile, parseFloat(tile.dataset.value), parseFloat(tile.dataset.good), parseFloat(tile.dataset.warn), tile.dataset.lowerIsBetter === 'true');
+    }
+
+    function ouraFetch(path, token, startDate, endDate) {
+      var url = 'https://api.ouraring.com/v2/usercollection/' + path + '?start_date=' + startDate + '&end_date=' + endDate;
+      return fetch(url, { headers: { Authorization: 'Bearer ' + token } }).then(function (r) {
+        if (!r.ok) throw new Error('oura ' + path + ' ' + r.status);
+        return r.json();
+      });
+    }
+
+    function setConnectedUI(connected) {
+      connectBtn.hidden = connected;
+      disconnectBtn.hidden = !connected;
+      form.hidden = true;
+      note.hidden = connected;
+    }
+
+    function syncOura(token) {
+      var today = new Date();
+      var startDate = localDateStr(new Date(today.getTime() - 2 * 86400000));
+      var endDate = localDateStr(today);
+
+      Promise.allSettled([
+        ouraFetch('daily_readiness', token, startDate, endDate),
+        ouraFetch('daily_sleep', token, startDate, endDate),
+        ouraFetch('daily_activity', token, startDate, endDate),
+        ouraFetch('sleep', token, startDate, endDate)
+      ]).then(function (results) {
+        var anyOk = results.some(function (r) { return r.status === 'fulfilled'; });
+        if (!anyOk) {
+          meta.textContent = 'Could not connect — check your token';
+          return;
+        }
+        var readiness = results[0], sleepDaily = results[1], activity = results[2], sleepDetail = results[3];
+
+        if (readiness.status === 'fulfilled' && readiness.value.data.length) {
+          updateTile('oura-readiness', readiness.value.data.slice(-1)[0].score);
+        }
+        if (sleepDaily.status === 'fulfilled' && sleepDaily.value.data.length) {
+          updateTile('oura-sleep-score', sleepDaily.value.data.slice(-1)[0].score);
+        }
+        if (activity.status === 'fulfilled' && activity.value.data.length) {
+          updateTile('oura-activity', activity.value.data.slice(-1)[0].score);
+        }
+        if (sleepDetail.status === 'fulfilled' && sleepDetail.value.data.length) {
+          var periods = sleepDetail.value.data;
+          var longSleep = periods.filter(function (p) { return p.type === 'long_sleep'; }).slice(-1)[0] || periods.slice(-1)[0];
+          if (longSleep.average_hrv != null) updateTile('oura-hrv', Math.round(longSleep.average_hrv), 'ms');
+          if (longSleep.lowest_heart_rate != null) updateTile('oura-resting-hr', Math.round(longSleep.lowest_heart_rate), 'bpm');
+          if (longSleep.total_sleep_duration != null) updateTile('oura-total-sleep', Math.round(longSleep.total_sleep_duration / 360) / 10, 'hrs');
+        }
+
+        meta.textContent = 'Live · synced ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      });
+    }
+
+    var stored = localStorage.getItem(TOKEN_KEY);
+    if (stored) {
+      setConnectedUI(true);
+      syncOura(stored);
+    }
+
+    connectBtn.addEventListener('click', function () {
+      connectBtn.hidden = true;
+      form.hidden = false;
+      input.focus();
+    });
+    cancelBtn.addEventListener('click', function () {
+      form.hidden = true;
+      connectBtn.hidden = false;
+    });
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var token = input.value.trim();
+      if (!token) return;
+      localStorage.setItem(TOKEN_KEY, token);
+      input.value = '';
+      setConnectedUI(true);
+      meta.textContent = 'Connecting…';
+      syncOura(token);
+    });
+    disconnectBtn.addEventListener('click', function () {
+      if (!confirm('Remove your Oura token from this browser and go back to the manually-updated numbers?')) return;
+      localStorage.removeItem(TOKEN_KEY);
+      location.reload();
     });
   })();
 

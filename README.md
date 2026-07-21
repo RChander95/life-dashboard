@@ -1,16 +1,27 @@
-# GitHub Pages
+# My Life Dashboard
 
-<img src="https://octodex.github.com/images/Professortocat_v2.png" align="right" height="200px" />
+A personal, mobile-friendly dashboard — calendars, Oura Ring, Apple Health, and weather/UV — built as a static [GitHub Pages](https://pages.github.com/) site. No backend, no database, no paid hosting.
 
-Hey RChander95!
+## Use this yourself
 
-Mona here. I'm done preparing your exercise. Hope you enjoy! 💚
+1. Click **Use this template** above (or fork it) to get your own copy.
+2. In your copy's **Settings**, make sure the repo is **public** — free GitHub Pages requires it.
+3. **Settings → Pages** → Source: **Deploy from a branch** → `main` → Save.
+4. Open the repo in [Claude Code](https://claude.com/claude-code) and ask it to help you connect your calendars, Oura, and Apple Health — it will read `CLAUDE.md` and know the setup and safety rules automatically. Or edit the files by hand, see below.
 
-Remember, it's self-paced so feel free to take a break! ☕️
+## What's live vs. manual
 
-[![](https://img.shields.io/badge/Go%20to%20Exercise-%E2%86%92-1f883d?style=for-the-badge&logo=github&labelColor=197935)](https://github.com/RChander95/skills-github-pages/issues/1)
+| Section | How it works |
+|---|---|
+| **Calendars** | Live Google Calendar embeds — configure in `_data/calendars.yml`. Share each calendar with your own Google account (not "public"), so events only render for you, signed in. |
+| **Weather / UV** | Live, automatic, no signup — fetched from the free keyless [Open-Meteo](https://open-meteo.com/) API using coordinates in `_data/location.yml`. |
+| **Oura Ring** | Live, once connected — click "Connect Oura" on the dashboard and paste a personal access token. It's stored only in your browser (`localStorage`), never committed to this repo. Or leave it disconnected and edit `_data/oura.yml` manually. |
+| **Apple Health** | Manual only — Apple has no public API for Health data. Edit `_data/apple_health.yml` with today's numbers. |
 
----
+## Security notes
 
-&copy; 2025 GitHub &bull; [Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/code_of_conduct.md) &bull; [MIT License](https://gh.io/mit)
+- No API keys or secrets are ever committed to this repo.
+- The Oura token you enter lives only in your own browser's local storage and is sent only to Oura's own API, directly from your device.
+- This repo must be **public** for free GitHub Pages to work, so anything committed to `_data/*.yml` (Oura/Apple Health numbers, your approximate location) is technically world-readable. If that matters to you, keep those numbers vague/rounded, or ask Claude Code to help move them to browser-only storage too.
 
+&copy; 2026 &bull; [MIT License](https://gh.io/mit)
