@@ -2,7 +2,7 @@
 # https://www.latlong.net/ and paste them in below. No API key needed -
 # weather comes from the free, keyless Open-Meteo API, fetched live in the
 # visitor's browser.
-label: "New York, NY"
-lat: 40.7128
-lon: -74.0060
+label: "Chicago, IL"
+lat: 41.8781
+lon: -87.6298
 units: "fahrenheit"   # "fahrenheit" or "celsius"
