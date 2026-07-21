@@ -1,0 +1,44 @@
+# Oura has no public/keyless API, so a static GitHub Pages site can't pull
+# this live without exposing a personal access token to the world. Instead,
+# open the Oura app each morning and copy today's numbers in here - it's a
+# 30-second update.
+# good / warn are the score thresholds Oura itself uses to color a metric
+# green / yellow / red. Set lower_is_better: true for metrics where a smaller
+# number is the good outcome (resting heart rate). Set ring: true to draw the
+# little progress ring (only makes sense for the 0-100 score metrics).
+last_updated: "2026-07-21"
+metrics:
+  - label: "Sleep Score"
+    value: 82
+    unit: ""
+    good: 85
+    warn: 60
+    ring: true
+  - label: "Readiness"
+    value: 78
+    unit: ""
+    good: 85
+    warn: 60
+    ring: true
+  - label: "Activity"
+    value: 88
+    unit: ""
+    good: 85
+    warn: 60
+    ring: true
+  - label: "HRV"
+    value: 46
+    unit: "ms"
+    good: 45
+    warn: 30
+  - label: "Resting HR"
+    value: 54
+    unit: "bpm"
+    good: 60
+    warn: 70
+    lower_is_better: true
+  - label: "Total Sleep"
+    value: 7.4
+    unit: "hrs"
+    good: 7
+    warn: 6
