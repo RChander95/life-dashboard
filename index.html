@@ -37,32 +37,6 @@ title: My Life Dashboard
 
     --font-serif: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:where(:not([data-theme="light"])) {
-      color-scheme: dark;
-      --page:        #16130e;
-      --surface-1:   #201b14;
-      --surface-2:   #262019;
-      --text-primary:   #f4eee1;
-      --text-secondary: #c2b7a3;
-      --text-muted:     #8e8471;
-      --border:      rgba(244,238,225,0.10);
-      --gridline:    #322b20;
-
-      --status-good:     #7cb87a;
-      --status-warning:  #d9a24f;
-      --status-critical: #d97b6c;
-
-      --series-1: #6ea6ea;
-      --series-2: #e2934f;
-      --series-3: #3fcf9c;
-      --series-4: #d9a24f;
-      --series-5: #d888a9;
-      --series-6: #7cb87a;
-      --series-7: #9085e9;
-      --series-8: #d97b6c;
-    }
-  }
   :root[data-theme="dark"] {
     color-scheme: dark;
     --page:        #16130e;
@@ -467,29 +441,6 @@ title: My Life Dashboard
       </div>
     </section>
 
-    <section aria-labelledby="health-heading">
-      <div class="section-head">
-        <h2 id="health-heading">Apple Health</h2>
-        <span class="meta">Updated {{ site.data.apple_health.last_updated }}</span>
-      </div>
-      <div class="stat-grid">
-        {% for m in site.data.apple_health.metrics %}
-        <div class="stat-tile">
-          <div class="stat-top"><span class="stat-kicker">{{ m.label | upcase }} &middot; APPLE HEALTH</span></div>
-          <div class="stat-value">{{ m.value }}<span class="unit">{{ m.unit }}</span></div>
-          {% if m.goal %}
-            {% assign pct = m.value | times: 100.0 | divided_by: m.goal %}
-            {% if pct > 100 %}{% assign pct = 100 %}{% endif %}
-            <div class="stat-sub">Goal {{ m.goal }}{{ m.unit }} &middot; {{ pct | round }}%</div>
-            <div class="goal-bar"><i style="width: {{ pct | round }}%;"></i></div>
-          {% elsif m.trend %}
-            <div class="stat-sub">{{ m.trend }}</div>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-    </section>
-
     <section aria-labelledby="cal-heading">
       <div class="section-head">
         <h2 id="cal-heading">Calendars</h2>
@@ -512,7 +463,7 @@ title: My Life Dashboard
     </section>
 
     <details class="setup">
-      <summary>Connect your own Oura, Apple Health &amp; calendars</summary>
+      <summary>Connect your own Oura &amp; calendars</summary>
       <p>This dashboard is a static site with no server, so every connection below is either a live keyless feed or a small file you keep updated yourself &mdash; nothing that requires storing a private API key in this repo.</p>
 
       <h4>Calendars &mdash; live, private</h4>
@@ -529,9 +480,6 @@ title: My Life Dashboard
 
       <h4>Oura Ring &mdash; manual</h4>
       <p>Oura doesn't offer a public/keyless API, so open the Oura app each morning and copy today's scores into <code>_data/oura.yml</code>.</p>
-
-      <h4>Apple Health &mdash; manual</h4>
-      <p>Apple Health data lives on your device with no public web API, so open the Health app and copy today's numbers into <code>_data/apple_health.yml</code>. Give a metric a <code>goal</code> to show it as a progress bar.</p>
     </details>
 
     <footer>Built with GitHub Pages &middot; calendars are shared with this owner's Google account only, not public.</footer>
@@ -544,8 +492,7 @@ title: My Life Dashboard
     var stored = localStorage.getItem('theme');
     if (stored) root.setAttribute('data-theme', stored);
     toggle.addEventListener('click', function () {
-      var current = root.getAttribute('data-theme') ||
-        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      var current = root.getAttribute('data-theme') || 'light';
       var next = current === 'dark' ? 'light' : 'dark';
       root.setAttribute('data-theme', next);
       localStorage.setItem('theme', next);
@@ -553,12 +500,39 @@ title: My Life Dashboard
   })();
 
   (function () {
+    var NAME_KEY = 'dashboard_name';
+    var titleEl = document.getElementById('greeting-title');
     var now = new Date();
     var hour = now.getHours();
-    var greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    var greeting = hour < 5 ? 'Good evening'
+      : hour < 12 ? 'Good morning'
+      : hour < 18 ? 'Good afternoon'
+      : 'Good evening';
     var dateStr = now.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
     document.getElementById('today-kicker').textContent = dateStr.toUpperCase();
-    document.getElementById('greeting-title').textContent = greeting + '.';
+
+    // Name comes from this browser first (set by tapping the greeting), then
+    // falls back to owner_name in _config.yml, then to a plain greeting.
+    var configName = {{ site.owner_name | default: '' | jsonify }};
+
+    function render() {
+      var name = (localStorage.getItem(NAME_KEY) || configName || '').trim();
+      titleEl.textContent = name ? greeting + ', ' + name + '.' : greeting + '.';
+      titleEl.title = 'Click to ' + (name ? 'change' : 'set') + ' your name';
+    }
+
+    titleEl.style.cursor = 'pointer';
+    titleEl.addEventListener('click', function () {
+      var current = (localStorage.getItem(NAME_KEY) || configName || '');
+      var entered = prompt('What should the dashboard call you? (leave blank to clear)', current);
+      if (entered === null) return; // cancelled
+      entered = entered.trim();
+      if (entered) localStorage.setItem(NAME_KEY, entered);
+      else localStorage.removeItem(NAME_KEY);
+      render();
+    });
+
+    render();
   })();
 
   var STATUS_LABELS = { good: 'optimal', warning: 'fair', critical: 'pay attention' };

@@ -1,3 +1,8 @@
 title: My Life Dashboard
 description: Calendars and Oura ring stats, all in one place.
 timezone: America/New_York
+
+# Shows up in the "Good morning, NAME." greeting. Each visitor can also just
+# tap the greeting to set their own name (saved only in their browser), which
+# overrides this. Leave blank for a plain "Good morning." with no name.
+owner_name: ""
