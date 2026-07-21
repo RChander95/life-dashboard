@@ -10,10 +10,10 @@
 # "Make available to public" - that makes the calendar visible to anyone
 # with the link, not just you.
 #
+# Tip: subscribe your Outlook and iCloud calendars INTO this Google calendar
+# (Google Calendar > Other calendars > + > From URL) and they show up here
+# automatically - no need to add separate entries.
+#
 # Calendars are tinted in this fixed order automatically - no color to set.
-- name: "Personal"
-  embed_url: "https://calendar.google.com/calendar/embed?src=YOUR_PERSONAL_CALENDAR_ID%40group.calendar.google.com&ctz=America%2FNew_York"
-- name: "Work"
-  embed_url: "https://calendar.google.com/calendar/embed?src=YOUR_WORK_CALENDAR_ID%40group.calendar.google.com&ctz=America%2FNew_York"
-- name: "Fitness"
-  embed_url: "https://calendar.google.com/calendar/embed?src=YOUR_FITNESS_CALENDAR_ID%40group.calendar.google.com&ctz=America%2FNew_York"
+- name: "My Calendar"
+  embed_url: "https://calendar.google.com/calendar/embed?src=chanderroopa%40gmail.com&ctz=America%2FChicago"
