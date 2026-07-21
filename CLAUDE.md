@@ -33,23 +33,29 @@ that account; everyone else sees a blank/permission box. This is already
 the wording used in `_data/calendars.yml`'s comments and the in-page setup
 guide — keep new instructions consistent with it.
 
-## Oura token
+## Oura (live via a Cloudflare Worker proxy)
 
-`index.html` has a "Connect Oura" control in the Oura Ring section
-(search for `oura-connect-box`). Clicking it reveals a password-type input;
-the token is saved to `localStorage` only, never written to any file or
-committed anywhere, and is sent only in direct HTTPS requests to
-`api.ouraring.com` from the visitor's own browser. Tell users to generate a
-**read-only** personal access token at
-https://cloud.ouraring.com/personal-access-tokens.
+**Important:** Oura's API does NOT support CORS, so a static page cannot call
+`api.ouraring.com` directly from the browser — that always fails. Do not
+"fix" the Oura connection by pointing fetches back at Oura directly; it will
+look correct and never work.
 
-The JS (`syncOura()` in `index.html`) calls `daily_readiness`,
-`daily_sleep`, `daily_activity`, and `sleep` on Oura's v2 API and falls back
-silently to the manual `_data/oura.yml` values if any call fails (e.g. bad
-token, or Oura changes a field name). If a user reports a metric not
-updating live, check the field names against Oura's current API docs
-(https://cloud.ouraring.com/v2/docs) before assuming the token is wrong —
-these were implemented without a live account to test against.
+The working design is a proxy: `cloudflare-worker/oura-proxy.js` is a tiny
+Worker the user deploys on their own free Cloudflare account. It holds the
+Oura token as a Worker **secret** (`OURA_TOKEN`), only answers requests from
+the dashboard's `ALLOWED_ORIGIN`, and forwards four read-only endpoints
+(`daily_readiness`, `daily_sleep`, `daily_activity`, `sleep`) with the CORS
+header the browser needs. Setup is in `cloudflare-worker/README.md`.
+
+`index.html` has a "Connect Oura" control (search for `oura-connect-box`).
+The user pastes their **Worker URL** (not their token) into it; the URL is
+saved to `localStorage` only, never committed. `syncOura()` calls the Worker
+as `<url>?path=<collection>&start_date=…&end_date=…` and falls back silently
+to the manual `_data/oura.yml` values if a call fails. If a metric doesn't
+update live, check the field names in `syncOura()` against Oura's current API
+docs (https://cloud.ouraring.com/v2/docs) — these were implemented without a
+live account to test against. The token never touches the browser or repo, so
+never ask the user to paste a raw token into the page or a file.
 
 ## The public-repo tradeoff
 
