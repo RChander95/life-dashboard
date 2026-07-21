@@ -386,8 +386,17 @@ title: My Life Dashboard
     <section aria-labelledby="weather-heading">
       <div class="section-head">
         <h2 id="weather-heading">Weather</h2>
-        <span class="meta" id="weather-meta">Locating&hellip;</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="meta" id="weather-meta">Locating&hellip;</span>
+          <button class="pill-link" id="loc-set-btn" type="button">Set location</button>
+        </div>
       </div>
+      <form id="loc-form" class="connect-form" hidden>
+        <input type="text" id="loc-input" class="connect-input" autocomplete="off"
+               placeholder="Your city (e.g. New York)">
+        <button class="pill-link pill-primary" type="submit">Save</button>
+        <button class="pill-link" type="button" id="loc-cancel">Cancel</button>
+      </form>
       <div class="uv-alert" id="uv-alert" hidden>
         <span class="uv-alert-icon" aria-hidden="true">&#9728;</span>
         <span id="uv-alert-text">Sunscreen reminder &mdash; UV is high today.</span>
@@ -768,7 +777,7 @@ title: My Life Dashboard
       95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm'
     };
 
-    function loadWeather(lat, lon) {
+    function loadWeather(lat, lon, label) {
       var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + encodeURIComponent(lat) +
         '&longitude=' + encodeURIComponent(lon) +
         '&current=temperature_2m,weather_code,uv_index' +
@@ -778,7 +787,7 @@ title: My Life Dashboard
       fetch(url).then(function (r) { return r.json(); }).then(function (data) {
         var cur = data.current || {};
         var daily = data.daily || {};
-        if (meta) meta.textContent = 'Your location';
+        if (meta) meta.textContent = label || 'Your location';
 
         document.querySelector('#weather-temp .stat-value').innerHTML =
           Math.round(cur.temperature_2m) + '<span class="unit">' + unitSymbol + '</span>';
@@ -817,20 +826,63 @@ title: My Life Dashboard
     }
 
     function locationOff(msg) {
-      if (meta) meta.textContent = msg || 'Location off';
-      document.querySelector('#weather-condition .stat-value').textContent = 'Enable location';
+      if (meta) meta.textContent = msg || 'Set location →';
+      document.querySelector('#weather-condition .stat-value').textContent = 'Set location';
     }
 
-    // Ask the browser for coordinates - never stored, never committed.
-    if (!navigator.geolocation) {
-      locationOff('No location support');
-      return;
+    // Manual "set your city" control - saved only in this browser.
+    var LOC_KEY = 'weather_location';
+    var setBtn = document.getElementById('loc-set-btn');
+    var locForm = document.getElementById('loc-form');
+    var locInput = document.getElementById('loc-input');
+    var locCancel = document.getElementById('loc-cancel');
+
+    function useSaved() {
+      try {
+        var s = JSON.parse(localStorage.getItem(LOC_KEY));
+        if (s && s.lat != null && s.lon != null) {
+          if (meta) meta.textContent = s.label || 'Your location';
+          loadWeather(s.lat, s.lon, s.label);
+          return true;
+        }
+      } catch (e) {}
+      return false;
     }
-    navigator.geolocation.getCurrentPosition(
-      function (pos) { loadWeather(pos.coords.latitude, pos.coords.longitude); },
-      function () { locationOff('Location blocked'); },
-      { timeout: 10000, maximumAge: 30 * 60 * 1000 }
-    );
+
+    setBtn.addEventListener('click', function () { locForm.hidden = false; locInput.focus(); });
+    locCancel.addEventListener('click', function () { locForm.hidden = true; });
+    locForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var city = locInput.value.trim();
+      if (!city) return;
+      if (meta) meta.textContent = 'Looking up…';
+      fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&name=' + encodeURIComponent(city))
+        .then(function (r) { return r.json(); })
+        .then(function (g) {
+          if (!g.results || !g.results.length) { if (meta) meta.textContent = 'City not found'; return; }
+          var hit = g.results[0];
+          var label = hit.name + (hit.admin1 ? ', ' + hit.admin1 : '');
+          localStorage.setItem(LOC_KEY, JSON.stringify({ lat: hit.latitude, lon: hit.longitude, label: label }));
+          locForm.hidden = true;
+          locInput.value = '';
+          if (meta) meta.textContent = label;
+          loadWeather(hit.latitude, hit.longitude, label);
+        })
+        .catch(function () { if (meta) meta.textContent = 'Lookup failed'; });
+    });
+
+    // On load: saved city first, then try geolocation, else prompt to set one.
+    if (!useSaved()) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function (pos) { loadWeather(pos.coords.latitude, pos.coords.longitude); },
+          function () { locationOff('Set location →'); },
+          { timeout: 10000, maximumAge: 30 * 60 * 1000 }
+        );
+      } else {
+        locationOff('Set location →');
+      }
+    }
   })();
 
   (function () {
