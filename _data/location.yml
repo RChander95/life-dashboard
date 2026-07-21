@@ -1,0 +1,8 @@
+# Used for the Weather / UV Index section. Find your lat/lon at
+# https://www.latlong.net/ and paste them in below. No API key needed -
+# weather comes from the free, keyless Open-Meteo API, fetched live in the
+# visitor's browser.
+label: "New York, NY"
+lat: 40.7128
+lon: -74.0060
+units: "fahrenheit"   # "fahrenheit" or "celsius"

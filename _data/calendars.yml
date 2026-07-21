@@ -1,0 +1,12 @@
+# Add one entry per calendar you want on the dashboard.
+# To get an embed_url: Google Calendar > Settings > pick the calendar under
+# "Settings for my calendars" > turn on "Make available to public" under
+# Access permissions > scroll to "Integrate calendar" > copy the src from the
+# "Embed code" iframe (or use the "Public URL to this calendar" link).
+# Calendars are tinted in this fixed order automatically - no color to set.
+- name: "Personal"
+  embed_url: "https://calendar.google.com/calendar/embed?src=YOUR_PERSONAL_CALENDAR_ID%40group.calendar.google.com&ctz=America%2FNew_York"
+- name: "Work"
+  embed_url: "https://calendar.google.com/calendar/embed?src=YOUR_WORK_CALENDAR_ID%40group.calendar.google.com&ctz=America%2FNew_York"
+- name: "Fitness"
+  embed_url: "https://calendar.google.com/calendar/embed?src=YOUR_FITNESS_CALENDAR_ID%40group.calendar.google.com&ctz=America%2FNew_York"
